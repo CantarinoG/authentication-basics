@@ -59,6 +59,12 @@ app.use(passport.initialize());
 app.use(passport.session())
 app.use(express.urlencoded({extended: false}));
 
+//current user available to all view beneath it (accessible as res.locals.currentUser)
+app.use(function(req, res, next) {
+    res.locals.currentUser = req.user;
+    next();
+  });
+
 app.post(
     "/log-in",
     passport.authenticate("local", {
@@ -87,7 +93,7 @@ app.post("/sign-up", (req, res, next) => {
     });
 });
 app.get("/", (req, res) => res.render("index", {
-    user: req.user
+    user: res.locals.currentUser
 }));
 
 app.listen(3000, () => console.log("Listening on port 3000."));
