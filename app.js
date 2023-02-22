@@ -31,10 +31,49 @@ app.set("views", __dirname);
 app.set("view engine", "ejs");
 
 app.use(session({ secret: "cats", resave: false, saveUninitialized: true }));
+
+//This function will be called with passport.authenticate()
+passport.use(
+    new LocalStrategy((username, password, done) => {
+        User.findOne({ username: username}, (err, user) => {
+            if(err) return done(err);
+            if (!user) return done(null, false, { message: "Incorrect username"});
+            if (user.password !== password) return done(null, false, {message: "Incorrect password"});
+            return done(null, user);
+        });
+    })
+);
+
+passport.serializeUser(function(user, done){
+    done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done){
+    User.findById(id, function(err, user){
+        done(err, user)
+    })
+});
+
+
 app.use(passport.initialize());
 app.use(passport.session())
 app.use(express.urlencoded({extended: false}));
 
+app.post(
+    "/log-in",
+    passport.authenticate("local", {
+      successRedirect: "/",
+      failureRedirect: "/"
+    })
+  );
+  app.get("/log-out", (req, res, next) => {
+    req.logout(function (err) {
+      if (err) {
+        return next(err);
+      }
+      res.redirect("/");
+    });
+  });
 app.get("/sign-up", (req, res) => res.render("sign-up-form"));
 app.post("/sign-up", (req, res, next) => {
     const user = new User({
@@ -47,6 +86,8 @@ app.post("/sign-up", (req, res, next) => {
         res.redirect("/");
     });
 });
-app.get("/", (req, res) => res.render("index"));
+app.get("/", (req, res) => res.render("index", {
+    user: req.user
+}));
 
 app.listen(3000, () => console.log("Listening on port 3000."));
